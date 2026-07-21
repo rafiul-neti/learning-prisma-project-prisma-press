@@ -25,13 +25,11 @@ const registerUserIntoDB = async (payload: registerUserPayload) => {
       name,
       email,
       password: hashedPassword,
-    },
-  });
-
-  await prisma.profile.create({
-    data: {
-      userId: createdUser.id,
-      profilePhoto,
+      profile: {
+        create: {
+          profilePhoto
+        }
+      }
     },
   });
 
