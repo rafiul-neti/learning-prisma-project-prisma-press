@@ -3,9 +3,6 @@ import httpStatus from "http-status";
 import { userService } from "./user.service";
 import { catchAsync } from "../../utils/catchAsync";
 import { sendSuccessResponse } from "../../utils/sendSuccessResponse";
-import jwt from "jsonwebtoken";
-import config from "../../config";
-import { jwtUtils } from "../../utils/jwt";
 
 const registerUser = catchAsync(async (req: Request, res: Response) => {
   const user = await userService.registerUserIntoDB(req.body);
@@ -27,7 +24,23 @@ const getMyProfile = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const updateMyProfile = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?.id as string;
+
+  const updatedProfile = await userService.updateMyProfileIntoDB(
+    userId,
+    req.body,
+  );
+
+  sendSuccessResponse(res, {
+    statusCode: httpStatus.OK,
+    message: "User profile updated successfully.",
+    data: { updatedProfile },
+  });
+});
+
 export const userController = {
   registerUser,
   getMyProfile,
+  updateMyProfile,
 };

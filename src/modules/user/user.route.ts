@@ -13,4 +13,6 @@ router.get(
   userController.getMyProfile,
 );
 
+router.put("/my-profile", authGuard(Role.ADMIN, Role.AUTHOR, Role.USER), userController.updateMyProfile);
+
 export const userRoutes = router;
