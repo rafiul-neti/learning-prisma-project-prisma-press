@@ -1,3 +1,4 @@
+import { CommentStatus, PostStatus } from "../../../generated/prisma/enums";
 import { prisma } from "../../lib/prisma";
 import { ICreatePostPayload, IUpdatePostPayload } from "./post.interface";
 
@@ -23,7 +24,54 @@ const getAllPostsFromDB = async () => {
   return posts;
 };
 
-const getPostsStatsFromDB = async () => {};
+const getPostsStatsFromDB = async () => {
+  const transactionResult = await prisma.$transaction(async (tx) => {
+    const [
+      totalPosts,
+      totalPublishedPosts,
+      totalDraftedPosts,
+      totalArchievedPosts,
+      totalComments,
+      totalApprovedComments,
+      totalRejectedComments,
+      countViewsOfAllPosts,
+    ] = await Promise.all([
+      tx.post.count(),
+      tx.post.count({
+        where: { status: PostStatus.PUBLISHED },
+      }),
+      tx.post.count({
+        where: { status: PostStatus.DRAFT },
+      }),
+      tx.post.count({
+        where: { status: PostStatus.ARCHIEVED },
+      }),
+      tx.comment.count(),
+      tx.comment.count({
+        where: { status: CommentStatus.APPROVED },
+      }),
+      tx.comment.count({
+        where: { status: CommentStatus.REJECTED },
+      }),
+      tx.post.aggregate({
+        _sum: { views: true },
+      }),
+    ]);
+
+    return {
+      totalPosts,
+      totalPublishedPosts,
+      totalDraftedPosts,
+      totalArchievedPosts,
+      totalComments,
+      totalApprovedComments,
+      totalRejectedComments,
+      totalViews: countViewsOfAllPosts._sum.views ?? 0,
+    };
+  });
+
+  return transactionResult;
+};
 
 const getMyPostsFromDB = async (authorId: string) => {
   const result = await prisma.post.findMany({
@@ -74,7 +122,7 @@ const getSinglePostFromDB = async (postId: string) => {
     return post;
   });
 
-  return transactionResult
+  return transactionResult;
 };
 
 const updatePostIntoDB = async (
