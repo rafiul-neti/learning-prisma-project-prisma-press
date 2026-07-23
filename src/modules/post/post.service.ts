@@ -1,7 +1,13 @@
-import { Prisma } from "../../../generated/prisma/browser";
-import { CommentStatus, PostStatus } from "../../../generated/prisma/enums";
+import { Prisma } from "../../../generated/prisma/client";
+import {
+  CommentStatus,
+  PostStatus,
+  SubscriptionStatus,
+} from "../../../generated/prisma/enums";
 import { PostWhereInput } from "../../../generated/prisma/models";
 import { prisma } from "../../lib/prisma";
+import { AppError } from "../../utils/AppError";
+import httpStatus from "http-status";
 import {
   ICreatePostPayload,
   IPostQuery,
@@ -12,6 +18,17 @@ const createPostIntoDB = async (
   payload: ICreatePostPayload,
   userId: string,
 ) => {
+  const subscription = await prisma.subscription.findUnique({
+    where: { userId },
+  });
+
+  if (payload.isPremium && subscription?.status !== SubscriptionStatus.ACTIVE) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "Subscribe to create a premium post",
+    );
+  }
+
   const result = await prisma.post.create({
     data: {
       ...payload,
@@ -36,6 +53,7 @@ const getAllPostsFromDB = async (query: IPostQuery) => {
   } = query;
 
   const where: PostWhereInput = {};
+  where.isPremium = false;
 
   if (searchTerm) {
     where.OR = [
@@ -177,7 +195,7 @@ const getSinglePostFromDB = async (postId: string) => {
     });
 
     const post = await tx.post.findUniqueOrThrow({
-      where: { id: postId },
+      where: { id: postId, isPremium: false },
       include: {
         comments: true,
         author: {
@@ -207,8 +225,22 @@ const updatePostIntoDB = async (
 ) => {
   const post = await prisma.post.findUniqueOrThrow({ where: { id: postId } });
 
-  if (!isAdmin && post.authorId !== authorId) {
-    throw new Error("Forbidden!");
+  if (!isAdmin || post.authorId !== authorId) {
+    throw new AppError(
+      httpStatus.UNAUTHORIZED,
+      "You are unauthorized to make changes in this post",
+    );
+  }
+
+  const subscription = await prisma.subscription.findUnique({
+    where: { userId: authorId },
+  });
+
+  if (payload.isPremium && subscription?.status !== SubscriptionStatus.ACTIVE) {
+    throw new AppError(
+      httpStatus.FORBIDDEN,
+      "Subscribe to update a premium post",
+    );
   }
 
   const result = await prisma.post.update({
