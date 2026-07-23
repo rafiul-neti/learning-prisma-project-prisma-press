@@ -17,3 +17,22 @@ export interface IUpdatePostPayload {
   status?: PostStatus;
   tags?: string[];
 }
+
+export interface IPostQuery {
+  // Search — matches against title and/or content
+  searchTerm?: string;
+
+  // Filters — each maps to an exact-match Prisma condition
+  status?: PostStatus;
+  isFeatured?: string; // arrives as "true" | "false" string from query params
+  authorId?: string;
+  tags?: string; // comma-separated list from client, e.g. "tech,news"
+
+  // Pagination
+  page?: string;
+  limit?: string;
+
+  // Sorting
+  sortBy?: string; // validate against an allowlist before using
+  sortOrder?: "asc" | "desc";
+}
