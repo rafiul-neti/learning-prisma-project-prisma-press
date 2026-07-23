@@ -12,6 +12,7 @@ router.post(
 );
 router.get("/author/:authorId", commentController.getCommentsByAuthorId);
 router.get("/:commentId", commentController.getCommentsByCommentId);
+router.get("/post/:postId", commentController.getCommentsByPostId);
 router.patch(
   "/:commentId",
   authGuard(Role.USER, Role.AUTHOR, Role.ADMIN),
@@ -25,7 +26,7 @@ router.patch(
 router.delete(
   "/:commentId",
   authGuard(Role.USER, Role.AUTHOR, Role.ADMIN),
-  commentController.deleteComment,
+  commentController.deleteCommentById,
 );
 
 export const commentRoutes = router;
