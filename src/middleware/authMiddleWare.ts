@@ -5,6 +5,7 @@ import { Role } from "../../generated/prisma/enums";
 import httpStatus from "http-status";
 import { JwtPayload } from "jsonwebtoken";
 import { prisma } from "../lib/prisma";
+import { AppError } from "../utils/AppError";
 
 declare global {
   namespace Express {
@@ -21,77 +22,60 @@ declare global {
 
 export const authGuard = (...roles: Role[]) => {
   return async (req: Request, res: Response, next: NextFunction) => {
-    const token = req.cookies.accessToken
-      ? req.cookies.accessToken
-      : req.headers.authorization?.startsWith("Bearer ")
-        ? req.headers.authorization?.split(" ")[1]
-        : req.headers.authorization;
+    try {
+      const token = req.cookies.accessToken
+        ? req.cookies.accessToken
+        : req.headers.authorization?.startsWith("Bearer ")
+          ? req.headers.authorization?.split(" ")[1]
+          : req.headers.authorization;
 
-    if (!token) {
-      return res.status(httpStatus.FORBIDDEN).json({
-        success: false,
-        statusCode: httpStatus.FORBIDDEN,
-        message:
+      if (!token) {
+        throw new AppError(
+          httpStatus.FORBIDDEN,
           "Forbidden. You don't have permission to access this resource!",
-      });
-    }
+        );
+      }
 
-    const verifiedToken = jwtUtils.verifyToken(
-      token as string,
-      config.jwt_access_secret,
-    );
+      const verifiedToken = jwtUtils.verifyToken(
+        token as string,
+        config.jwt_access_secret,
+      );
 
-    if (!verifiedToken.success) {
-      return res.status(httpStatus.INTERNAL_SERVER_ERROR).json({
-        success: false,
-        statusCode: httpStatus.INTERNAL_SERVER_ERROR,
-        message: verifiedToken.error,
-      });
-    }
+      if (!verifiedToken.success) {
+        throw new AppError(httpStatus.UNAUTHORIZED, verifiedToken.error);
+      }
 
-    const { id, name, email, role } = verifiedToken.data as JwtPayload;
+      const { id, name, email, role } = verifiedToken.data as JwtPayload;
 
-    if (roles.length && !roles.includes(role)) {
-      return res.status(httpStatus.FORBIDDEN).json({
-        success: false,
-        statusCode: httpStatus.FORBIDDEN,
-        message:
+      if (roles.length && !roles.includes(role)) {
+        throw new AppError(
+          httpStatus.FORBIDDEN,
           "Forbidden. You don't have permission to access this resource!",
+        );
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id },
       });
+
+      if (!user) {
+        throw new AppError(
+          httpStatus.NOT_FOUND,
+          "User not found. Please log in again.",
+        );
+      }
+
+      if (user.activeStatus === "BLOCKED") {
+        throw new AppError(
+          httpStatus.FORBIDDEN,
+          "Your account has been blocked. Please contact support!",
+        );
+      }
+
+      req.user = { id, name, email, role };
+      next();
+    } catch (error) {
+      next(error);
     }
-
-    const user = await prisma.user.findUnique({
-      where: {
-        id,
-        name,
-        email,
-        role,
-      },
-    });
-
-    if (!user) {
-      return res.status(httpStatus.NOT_FOUND).json({
-        success: false,
-        statusCode: httpStatus.NOT_FOUND,
-        message: "User not found. Please log in again.",
-      });
-    }
-
-    if (user?.activeStatus === "BLOCKED") {
-      return res.status(httpStatus.FORBIDDEN).json({
-        success: false,
-        statusCode: httpStatus.FORBIDDEN,
-        message: "Your account has been blocked. Please contact support!",
-      });
-    }
-
-    req.user = {
-      id,
-      name,
-      email,
-      role,
-    };
-
-    next();
   };
 };
