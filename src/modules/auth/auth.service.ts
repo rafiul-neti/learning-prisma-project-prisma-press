@@ -8,7 +8,7 @@ import { JwtPayload, SignOptions } from "jsonwebtoken";
 const loginUserIntoApp = async (payload: ILoginUser) => {
   const { email, password } = payload;
 
-  const user = await prisma.user.findUniqueOrThrow({
+  const { password: userPass, ...user } = await prisma.user.findUniqueOrThrow({
     where: { email },
   });
 
@@ -18,7 +18,7 @@ const loginUserIntoApp = async (payload: ILoginUser) => {
     );
   }
 
-  const isPasswordCorrect = await bcrypt.compare(password, user.password);
+  const isPasswordCorrect = await bcrypt.compare(password, userPass);
 
   if (!isPasswordCorrect) {
     throw new Error("Password is incorrect!");
@@ -43,7 +43,7 @@ const loginUserIntoApp = async (payload: ILoginUser) => {
     config.jwt_refresh_expires_in,
   );
 
-  return { accessToken, refreshToken };
+  return { accessToken, refreshToken, user };
 };
 
 const refreshToken = async (token: string) => {

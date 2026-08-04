@@ -5,9 +5,8 @@ import { sendSuccessResponse } from "../../utils/sendSuccessResponse";
 import httpStatus from "http-status";
 
 const loginUser = catchAsync(async (req: Request, res: Response) => {
-  const { accessToken, refreshToken } = await authService.loginUserIntoApp(
-    req.body,
-  );
+  const { accessToken, refreshToken, user } =
+    await authService.loginUserIntoApp(req.body);
 
   res.cookie("accessToken", accessToken, {
     httpOnly: true,
@@ -26,7 +25,7 @@ const loginUser = catchAsync(async (req: Request, res: Response) => {
   sendSuccessResponse(res, {
     statusCode: httpStatus.OK,
     message: "User logged in successfully!",
-    data: { refreshToken, accessToken },
+    data: { accessToken, user },
   });
 });
 
