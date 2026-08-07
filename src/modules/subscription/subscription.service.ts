@@ -7,6 +7,7 @@ import {
   handleChangeSubscription,
   handleCheckoutSessionCompleted,
 } from "./subscription.utils";
+import { SubscriptionStatus } from "../../../generated/prisma/enums";
 
 const createCheckoutSession = async (userId: string) => {
   const transactionResult = await prisma.$transaction(async (tx) => {
@@ -84,7 +85,7 @@ const getSubscriptionStatus = async (userId: string) => {
   });
 
   const isActive =
-    isSubscriptionExist.status === "ACTIVE" &&
+    isSubscriptionExist.status === SubscriptionStatus.ACTIVE &&
     new Date(isSubscriptionExist.currentPeriodEnd) > new Date();
 
   return {
