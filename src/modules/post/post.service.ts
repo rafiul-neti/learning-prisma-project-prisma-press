@@ -57,25 +57,29 @@ const getAllPostsFromDB = async (query: IPostQuery) => {
 
   if (searchTerm) {
     where.OR = [
-      { title: { contains: searchTerm, mode: "insensitive" } },
-      { content: { contains: searchTerm, mode: "insensitive" } },
+      {
+        OR: [
+          { title: { contains: searchTerm, mode: "insensitive" } },
+          { content: { contains: searchTerm, mode: "insensitive" } },
+        ],
+      },
     ];
   }
 
   if (status) {
-    where.status = status;
+    where.OR?.push({ status });
   }
 
   if (tags) {
-    where.tags = { hasSome: tags.split(",") };
+    where.OR?.push({ tags: { hasSome: tags.split(",") } });
   }
 
   if (isFeatured) {
-    where.isFeatured = isFeatured === "true";
+    where.OR?.push({ isFeatured: isFeatured === "true" });
   }
 
   if (authorId) {
-    where.authorId = authorId;
+    where.OR?.push({ authorId });
   }
 
   // pagination
