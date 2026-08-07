@@ -65,7 +65,11 @@ const getPremiumContent = async (query: IPostQuery) => {
       orderBy,
       skip,
       take: contentLimitInAPage,
-      include: { author: { omit: { password: true } }, comments: true },
+      include: {
+        author: { omit: { password: true } },
+        comments: true,
+        _count: { select: { comments: true } },
+      },
     }),
     prisma.post.count({ where }),
   ]);
