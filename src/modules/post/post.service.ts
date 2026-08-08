@@ -229,7 +229,7 @@ const updatePostIntoDB = async (
 ) => {
   const post = await prisma.post.findUniqueOrThrow({ where: { id: postId } });
 
-  if (!isAdmin || post.authorId !== authorId) {
+  if (!isAdmin && post.authorId !== authorId) {
     throw new AppError(
       httpStatus.UNAUTHORIZED,
       "You are unauthorized to make changes in this post",
